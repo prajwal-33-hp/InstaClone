@@ -10,10 +10,22 @@ const app = express();
 // ─── MongoDB Connection ───────────────────────────────────────────────────────
 const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/gminsta";
 
+let mongoConnected = false;
+
 mongoose
-  .connect(MONGO_URI)
-  .then(() => console.log('✅ MongoDB connected to "gminsta" database'))
-  .catch((err) => console.error("❌ MongoDB connection error:", err));
+  .connect(MONGO_URI, {
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 45000,
+  })
+  .then(() => {
+    mongoConnected = true;
+    console.log('✅ MongoDB connected to "gminsta" database');
+  })
+  .catch((err) => {
+    mongoConnected = false;
+    console.error("⚠️  MongoDB connection warning:", err.message);
+    console.log("📝 App will run with limited functionality without MongoDB");
+  });
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 app.use(express.json());
@@ -24,15 +36,19 @@ app.use(express.static(path.join(__dirname, "public")));
 const uploadDir = path.join(__dirname, "public/images/uploads");
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
-app.use(
-  session({
-    secret: "gminsta-secret-key-2026",
-    resave: false,
-    saveUninitialized: false,
-    store: MongoStore.create({ mongoUrl: MONGO_URI }),
-    cookie: { maxAge: 1000 * 60 * 60 * 24 }, // 1 day
-  }),
-);
+// Session configuration with fallback
+const sessionConfig = {
+  secret: "gminsta-secret-key-2026",
+  resave: false,
+  saveUninitialized: false,
+  cookie: { maxAge: 1000 * 60 * 60 * 24 }, // 1 day
+};
+
+if (mongoConnected) {
+  sessionConfig.store = MongoStore.create({ mongoUrl: MONGO_URI });
+}
+
+app.use(session(sessionConfig));
 
 // ─── View Engine ─────────────────────────────────────────────────────────────
 app.set("view engine", "html");
@@ -102,10 +118,19 @@ app.use("/api/chat", require("./routes/chatRoutes"));
 app.use("/api/stories", require("./routes/storyRoutes"));
 app.use("/api/notes", require("./routes/noteRoutes"));
 
+// ─── Health Check ─────────────────────────────────────────────────────────────
+app.get("/health", (req, res) => {
+  res.json({
+    status: "ok",
+    mongodb: mongoConnected ? "connected" : "disconnected",
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // ─── START SERVER ─────────────────────────────────────────────────────────────
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
-  console.log(`🚀 GMinsta running at http://localhost:${PORT}`);
+  console.log(`🚀 GMinsta running at http://0.0.0.0:${PORT}`);
   console.log(`
 ╔════════════════════════════════════════════════════════╗
 ║        GMinsta - Instagram-Like Social App             ║
@@ -125,3 +150,4 @@ app.listen(PORT, () => {
 ╚════════════════════════════════════════════════════════╝
   `);
 });
+
