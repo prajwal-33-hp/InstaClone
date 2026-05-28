@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GMinsta – Stories</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .stories-container { max-width: 700px; margin: 0 auto; padding: 20px; }
+  .stories-header { text-align: center; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #eee; }
+  .stories-header h2 { margin: 0; font-size: 24px; }
+
+  /* Upload card */
+  .story-upload-card {
+    background: white; border: 2px dashed #007bff; border-radius: 12px;
+    padding: 24px; text-align: center; margin-bottom: 24px; cursor: pointer;
+    transition: all .3s ease;
+  }
+  .story-upload-card:hover { border-color: #0056b3; background: #f8f9fa; }
+  .story-upload-icon { font-size: 40px; margin-bottom: 10px; }
+  .story-upload-card h3 { margin: 0 0 6px; color: #007bff; }
+  .story-upload-card p { margin: 0; color: #666; font-size: 13px; }
+  .upload-input { display: none; }
+
+  /* Stories rail (Instagram-style) */
+  .rail {
+    background: white; border-radius: 12px; padding: 16px; border: 1px solid #eee;
+    margin-bottom: 24px; overflow-x: auto;
+  }
+  .rail h3 { margin: 0 0 12px; font-size: 16px; }
+  .rail-track { display: flex; gap: 14px; }
+  .rail-user {
+    display: flex; flex-direction: column; align-items: center; cursor: pointer;
+    min-width: 78px;
+  }
+  .ring {
+    width: 68px; height: 68px; border-radius: 50%; padding: 3px;
+    background: #ddd; display: flex; align-items: center; justify-content: center;
+  }
+  .ring.unseen {
+    background: linear-gradient(45deg, #22c55e, #16a34a, #4ade80);
+    box-shadow: 0 0 0 2px #fff inset;
+  }
+  .ring.mine { background: linear-gradient(45deg,#fdc068,#f56040,#cd486b); }
+  .ring img, .ring .ring-fallback {
+    width: 100%; height: 100%; border-radius: 50%; object-fit: cover;
+    background: #f0f0f0; display: flex; align-items: center; justify-content: center;
+    font-weight: bold; color: #555; border: 2px solid #fff;
+  }
+  .rail-username {
+    font-size: 12px; margin-top: 6px; max-width: 76px; overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap; text-align: center;
+  }
+
+  /* My stories grid */
+  .stories-feed { background: white; border-radius: 12px; padding: 20px; border: 1px solid #eee; }
+  .stories-list {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px;
+  }
+  .story-item {
+    position: relative; border-radius: 12px; overflow: hidden; aspect-ratio: 9/16;
+    cursor: pointer; background: linear-gradient(135deg,#667eea,#764ba2);
+    color: white; transition: transform .3s ease; box-shadow: 0 4px 12px rgba(0,0,0,.15);
+  }
+  .story-item:hover { transform: scale(1.04); }
+  .story-item img, .story-item video {
+    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1;
+  }
+  .story-overlay {
+    position: absolute; inset: 0; background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,.55) 100%);
+    z-index: 2;
+  }
+  .story-info { position: absolute; bottom: 10px; left: 12px; right: 12px; z-index: 3; }
+  .story-username { font-weight: bold; font-size: 12px; margin-bottom: 3px; }
+  .story-time { font-size: 10px; opacity: .85; }
+  .story-viewers {
+    position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,.5);
+    padding: 4px 9px; border-radius: 20px; font-size: 11px; color: white; z-index: 3;
+  }
+  .delete-story-btn {
+    position: absolute; top: 8px; left: 8px; background: rgba(255,0,0,.7);
+    border: none; color: white; padding: 4px 10px; border-radius: 4px; cursor: pointer;
+    font-size: 11px; z-index: 4; display: none;
+  }
+  .story-item:hover .delete-story-btn { display: block; }
+  .empty-stories { text-align: center; padding: 40px 20px; color: #999; }
+
+  /* Viewer modal */
+  .viewer-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.92); z-index: 9999;
+    display: none; align-items: center; justify-content: center;
+  }
+  .viewer-overlay.show { display: flex; }
+  .viewer-card {
+    width: min(440px, 96vw); height: min(780px, 92vh);
+    background: #000; border-radius: 12px; overflow: hidden; position: relative;
+    display: flex; flex-direction: column;
+  }
+  .viewer-progress { display: flex; gap: 4px; padding: 8px; }
+  .viewer-progress > div {
+    flex: 1; height: 3px; background: rgba(255,255,255,.3); border-radius: 2px; overflow: hidden;
+  }
+  .viewer-progress > div > span { display: block; height: 100%; width: 0%; background: white; transition: width .1s linear; }
+  .viewer-head {
+    display: flex; align-items: center; gap: 8px; padding: 8px 12px; color: #fff;
+  }
+  .viewer-head .av { width: 32px; height: 32px; border-radius: 50%; background: #444; display: flex; align-items: center; justify-content: center; font-weight: bold; overflow: hidden; }
+  .viewer-head .av img { width: 100%; height: 100%; object-fit: cover; }
+  .viewer-head .name { flex: 1; font-weight: 600; font-size: 14px; }
+  .viewer-close { background: transparent; border: none; color: #fff; font-size: 22px; cursor: pointer; }
+  .viewer-media-wrap { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; }
+  .viewer-media-wrap img, .viewer-media-wrap video { max-width: 100%; max-height: 100%; }
+  .viewer-caption {
+    position: absolute; bottom: 70px; left: 14px; right: 14px; color: #fff; font-size: 14px;
+    text-shadow: 0 1px 2px rgba(0,0,0,.6);
+  }
+  .viewer-actions {
+    display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(0,0,0,.4);
+  }
+  .viewer-actions input {
+    flex: 1; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.25);
+    color: #fff; padding: 8px 12px; border-radius: 20px; outline: none;
+  }
+  .viewer-actions button {
+    background: transparent; border: none; color: #fff; font-size: 22px; cursor: pointer;
+  }
+  .viewer-actions button.liked { color: #ff4d6d; }
+  .viewer-nav {
+    position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,.4);
+    color: #fff; border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 20px; cursor: pointer; z-index: 5;
+  }
+  .viewer-nav.prev { left: 8px; }
+  .viewer-nav.next { right: 8px; }
+
+  .progress-wrapper { display: none; margin-top: 16px; padding: 12px; background: #f8f9fa; border-radius: 8px; }
+  .progress-wrapper.show { display: block; }
+  .progress-bar { width: 100%; height: 4px; background: #ddd; border-radius: 2px; overflow: hidden; margin-bottom: 8px; }
+  .progress-fill { height: 100%; background: #007bff; width: 0%; transition: width .3s; }
+  .status-message { padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; font-size: 14px; }
+  .status-message.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+  .status-message.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+  .hidden { display: none; }
+</style>
+<script src="/js/theme.js"></script></head>
+<body>
+<nav class="navbar">
+  <div class="nav-logo">📸 Mini_insta</div>
+  <div class="nav-links">
+    <a href="/home">🏠 Home</a>
+    <a href="/search">🔍 Search</a>
+    <a href="/reels">📹 Reels</a>
+    <a href="/notes">📝 Notes</a>
+    <a href="/profile">👤 Profile</a>
+    <a href="/chat">💬 Chat</a>
+    <a href="/stories" class="active">📖 Stories</a>
+    <a href="/settings">⚙️ Settings</a>
+    <button class="btn btn-sm btn-outline" onclick="logout()">Logout</button>
+  </div>
+</nav>
+
+<div class="stories-container">
+  <div class="stories-header">
+    <h2>📖 Stories</h2>
+    <p>Share a moment — photos or short videos (24h)</p>
+  </div>
+
+  <div id="status-message" class="status-message hidden"></div>
+
+  <div class="story-upload-card" onclick="triggerUpload()">
+    <div class="story-upload-icon">📸🎬</div>
+    <h3>Create Story</h3>
+    <p>Upload a photo or a short video (max 50MB)</p>
+    <input type="file" id="story-media" class="upload-input" accept="image/*,video/*" onchange="handleUpload(event)">
+  </div>
+
+  <div class="progress-wrapper" id="progress-wrapper">
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+    <span id="upload-status">Uploading...</span>
+  </div>
+
+  <!-- Everyone's stories rail -->
+  <div class="rail">
+    <h3>👀 All Stories</h3>
+    <div id="rail-track" class="rail-track">
+      <p class="empty-stories">No active stories.</p>
+    </div>
+  </div>
+
+  <!-- My stories grid -->
+  <div class="stories-feed">
+    <h3>📖 Your Stories</h3>
+    <div id="stories-list" class="stories-list"></div>
+  </div>
+</div>
+
+<!-- Story Viewer Modal -->
+<div id="viewer" class="viewer-overlay" onclick="onViewerBgClick(event)">
+  <div class="viewer-card" id="viewer-card">
+    <div class="viewer-progress" id="viewer-progress"></div>
+    <div class="viewer-head">
+      <div class="av" id="v-avatar"></div>
+      <div class="name" id="v-name"></div>
+      <button class="viewer-close" onclick="closeViewer()">✕</button>
+    </div>
+    <div class="viewer-media-wrap">
+      <button class="viewer-nav prev" onclick="prevStory(event)">‹</button>
+      <div id="v-media"></div>
+      <div class="viewer-caption" id="v-caption"></div>
+      <button class="viewer-nav next" onclick="nextStory(event)">›</button>
+    </div>
+    <div class="viewer-actions">
+      <button id="v-like" onclick="toggleLike()">🤍</button>
+      <span id="v-likes" style="color:#fff;font-size:12px;min-width:18px;text-align:center;">0</span>
+      <input id="v-comment" placeholder="Reply to story..." onkeydown="if(event.key==='Enter')sendComment()">
+      <button onclick="sendComment()">➤</button>
+      <span id="v-views" style="color:#fff;font-size:12px;margin-left:6px;display:none;">👁 0</span>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentUser = null;
+let groups = [];        // [{user, stories:[...], hasUnseen, isMe}]
+let gIndex = 0, sIndex = 0;
+let progressTimer = null;
+
+async function init() {
+  const res = await fetch('/api/auth/me');
+  if (!res.ok) return window.location.href = '/login';
+  currentUser = await res.json();
+  loadFeed();
+  loadMyStories();
+}
+
+function triggerUpload() { document.getElementById('story-media').click(); }
+
+async function handleUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const isImage = file.type.startsWith('image/');
+  const isVideo = file.type.startsWith('video/');
+  if (!isImage && !isVideo) return showStatus('Only image or video files are allowed.', 'error');
+  if (file.size > 50 * 1024 * 1024) return showStatus('File must be under 50MB.', 'error');
+
+  showProgress();
+  try {
+    const formData = new FormData();
+    formData.append('media', file);
+    formData.append('caption', prompt('Add a caption (optional):') || '');
+
+    let progress = 0;
+    const tick = setInterval(() => { progress = Math.min(90, progress + Math.random()*20); updateProgress(progress); }, 120);
+
+    const res = await fetch('/api/stories', { method: 'POST', body: formData });
+    clearInterval(tick); updateProgress(100);
+
+    const data = await res.json();
+    if (!res.ok) return showStatus('Error: ' + (data.error || 'Upload failed'), 'error');
+
+    showStatus('Story created!', 'success');
+    hideProgress();
+    loadFeed();
+    loadMyStories();
+    event.target.value = '';
+  } catch (err) {
+    hideProgress();
+    showStatus('Error: ' + err.message, 'error');
+  }
+}
+
+function showProgress() { document.getElementById('progress-wrapper').classList.add('show'); }
+function hideProgress() { setTimeout(() => document.getElementById('progress-wrapper').classList.remove('show'), 800); }
+function updateProgress(v) {
+  document.getElementById('progress-fill').style.width = v + '%';
+  document.getElementById('upload-status').textContent = Math.round(v) + '%';
+}
+function showStatus(msg, type) {
+  const el = document.getElementById('status-message');
+  el.textContent = msg; el.className = 'status-message ' + type;
+  el.classList.remove('hidden'); setTimeout(() => el.classList.add('hidden'), 3500);
+}
+
+async function loadFeed() {
+  try {
+    const res = await fetch('/api/stories/feed');
+    if (!res.ok) throw new Error('Failed to load feed');
+    groups = await res.json();
+    renderRail();
+  } catch (err) { console.error(err); }
+}
+
+function renderRail() {
+  const track = document.getElementById('rail-track');
+  if (!groups.length) { track.innerHTML = '<p class="empty-stories">No active stories.</p>'; return; }
+  track.innerHTML = groups.map((g, i) => {
+    const av = g.user.profilePic && g.user.profilePic !== 'default-avatar.png'
+      ? `<img src="${g.user.profilePic}" alt="${g.user.username}">`
+      : `<div class="ring-fallback">${g.user.username[0].toUpperCase()}</div>`;
+    const ringCls = g.isMe ? 'mine' : (g.hasUnseen ? 'unseen' : '');
+    return `
+      <div class="rail-user" onclick="openViewer(${i}, 0)">
+        <div class="ring ${ringCls}">${av}</div>
+        <div class="rail-username">${g.isMe ? 'You' : g.user.username}</div>
+      </div>`;
+  }).join('');
+}
+
+async function loadMyStories() {
+  try {
+    const res = await fetch(`/api/stories/user/${currentUser._id}`);
+    if (!res.ok) throw new Error('Failed to load stories');
+    const stories = await res.json();
+    const container = document.getElementById('stories-list');
+    if (!stories.length) { container.innerHTML = '<p class="empty-stories">No stories yet. Create your first story!</p>'; return; }
+    container.innerHTML = stories.map(s => {
+      const hours = Math.floor((Date.now() - new Date(s.createdAt)) / 3600000);
+      const media = s.isVideo
+        ? `<video src="${s.video}" muted></video>`
+        : `<img src="${s.image}" alt="story">`;
+      return `
+        <div class="story-item" onclick="openMyStoryViewer('${s._id}')">
+          ${media}
+          <div class="story-overlay"></div>
+          <div class="story-viewers">👁 ${s.viewCount || (s.viewedBy ? s.viewedBy.length : 0)}</div>
+          <button class="delete-story-btn" onclick="event.stopPropagation();deleteStory('${s._id}')">Delete</button>
+          <div class="story-info">
+            <div class="story-username">${currentUser.username}</div>
+            <div class="story-time">${hours}h ago</div>
+          </div>
+        </div>`;
+    }).join('');
+  } catch (err) { console.error(err); }
+}
+
+function openMyStoryViewer(storyId) {
+  const idx = groups.findIndex(g => g.isMe);
+  if (idx < 0) return;
+  const sIdx = groups[idx].stories.findIndex(s => s._id === storyId);
+  openViewer(idx, Math.max(0, sIdx));
+}
+
+async function deleteStory(storyId) {
+  if (!confirm('Delete this story?')) return;
+  const res = await fetch(`/api/stories/${storyId}`, { method: 'DELETE' });
+  const data = await res.json();
+  if (!res.ok) return showStatus('Error: ' + data.error, 'error');
+  showStatus('Story deleted!', 'success');
+  loadFeed(); loadMyStories();
+}
+
+// ── Viewer ──────────────────────────────────────────────────────────────────
+function openViewer(g, s) {
+  if (!groups[g]) return;
+  gIndex = g; sIndex = s || 0;
+  document.getElementById('viewer').classList.add('show');
+  renderStory();
+}
+function closeViewer() {
+  document.getElementById('viewer').classList.remove('show');
+  document.getElementById('v-media').innerHTML = '';
+  if (progressTimer) { clearInterval(progressTimer); progressTimer = null; }
+}
+function onViewerBgClick(e) { if (e.target.id === 'viewer') closeViewer(); }
+function nextStory(e) {
+  e && e.stopPropagation();
+  const grp = groups[gIndex];
+  if (sIndex < grp.stories.length - 1) { sIndex++; renderStory(); }
+  else if (gIndex < groups.length - 1) { gIndex++; sIndex = 0; renderStory(); }
+  else closeViewer();
+}
+function prevStory(e) {
+  e && e.stopPropagation();
+  if (sIndex > 0) { sIndex--; renderStory(); }
+  else if (gIndex > 0) { gIndex--; sIndex = groups[gIndex].stories.length - 1; renderStory(); }
+}
+
+async function renderStory() {
+  const grp = groups[gIndex];
+  const story = grp.stories[sIndex];
+
+  // Avatar / name
+  const av = grp.user.profilePic && grp.user.profilePic !== 'default-avatar.png'
+    ? `<img src="${grp.user.profilePic}">` : grp.user.username[0].toUpperCase();
+  document.getElementById('v-avatar').innerHTML = av;
+  document.getElementById('v-name').textContent = grp.user.username + (grp.isMe ? ' (You)' : '');
+
+  // Progress segments
+  const prog = document.getElementById('viewer-progress');
+  prog.innerHTML = grp.stories.map((_, i) =>
+    `<div><span id="seg-${i}" style="width:${i < sIndex ? 100 : 0}%"></span></div>`).join('');
+
+  // Media
+  const media = document.getElementById('v-media');
+  if (story.isVideo && story.video) {
+    media.innerHTML = `<video src="${story.video}" autoplay playsinline controls></video>`;
+  } else {
+    media.innerHTML = `<img src="${story.image}" alt="story">`;
+  }
+  document.getElementById('v-caption').textContent = story.caption || '';
+
+  // Like state
+  const meId = currentUser._id;
+  const liked = (story.likes || []).map(String).includes(meId);
+  const likeBtn = document.getElementById('v-like');
+  likeBtn.textContent = liked ? '❤️' : '🤍';
+  likeBtn.classList.toggle('liked', liked);
+  document.getElementById('v-likes').textContent = (story.likes || []).length;
+
+  // Views (owner only)
+  const viewsEl = document.getElementById('v-views');
+  if (grp.isMe) {
+    viewsEl.style.display = 'inline';
+    viewsEl.textContent = '👁 ' + (story.viewCount || (story.viewedBy ? story.viewedBy.length : 0));
+  } else {
+    viewsEl.style.display = 'none';
+  }
+
+  // Mark viewed (only if not mine)
+  if (!grp.isMe) {
+    fetch(`/api/stories/${story._id}/view`, { method: 'POST' }).catch(()=>{});
+  }
+
+  // Auto-advance progress
+  if (progressTimer) clearInterval(progressTimer);
+  let pct = 0;
+  const duration = story.isVideo ? 15000 : 5000;
+  const seg = document.getElementById('seg-' + sIndex);
+  progressTimer = setInterval(() => {
+    pct += 100 / (duration / 100);
+    if (seg) seg.style.width = Math.min(100, pct) + '%';
+    if (pct >= 100) { clearInterval(progressTimer); nextStory(); }
+  }, 100);
+}
+
+async function toggleLike() {
+  const story = groups[gIndex].stories[sIndex];
+  const res = await fetch(`/api/stories/${story._id}/like`, { method: 'POST' });
+  if (!res.ok) return;
+  const data = await res.json();
+  story.likes = story.likes || [];
+  if (data.liked) story.likes.push(currentUser._id);
+  else story.likes = story.likes.filter(id => String(id) !== String(currentUser._id));
+  const likeBtn = document.getElementById('v-like');
+  likeBtn.textContent = data.liked ? '❤️' : '🤍';
+  likeBtn.classList.toggle('liked', data.liked);
+  document.getElementById('v-likes').textContent = data.likesCount;
+}
+
+async function sendComment() {
+  const inp = document.getElementById('v-comment');
+  const text = inp.value.trim();
+  if (!text) return;
+  const story = groups[gIndex].stories[sIndex];
+  const res = await fetch(`/api/stories/${story._id}/comment`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text })
+  });
+  if (!res.ok) {
+    const d = await res.json().catch(()=>({}));
+    return showStatus('Error: ' + (d.error || 'comment failed'), 'error');
+  }
+  inp.value = '';
+  showStatus('Reply sent!', 'success');
+}
+
+async function logout() { await fetch('/api/auth/logout', { method: 'POST' }); window.location.href = '/login'; }
+
+document.addEventListener('keydown', (e) => {
+  if (!document.getElementById('viewer').classList.contains('show')) return;
+  if (e.key === 'Escape') closeViewer();
+  else if (e.key === 'ArrowRight') nextStory();
+  else if (e.key === 'ArrowLeft') prevStory();
+});
+
+init();
+</script>
+</body>
+</html>

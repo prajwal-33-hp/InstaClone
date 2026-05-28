@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mini_insta – Login</title>
+<link rel="stylesheet" href="/css/style.css">
+<script src="/js/theme.js"></script></head>
+<body class="auth-page">
+<div class="auth-container">
+  <div class="auth-logo">
+    <h1>📸 Mini_insta</h1>
+    <p>A Mini Social Media Platform</p>
+  </div>
+  <div class="auth-card">
+    <h2>Welcome Back</h2>
+    <div id="error-msg" class="error-msg hidden"></div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="email" placeholder="you@example.com" />
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="password" placeholder="••••••••" />
+    </div>
+    <button class="btn btn-primary" onclick="login()">Login</button>
+    <p class="auth-switch">Don't have an account? <a href="/register">Register here</a></p>
+  </div>
+</div>
+<script>
+async function login() {
+  const email    = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const errEl    = document.getElementById('error-msg');
+
+  if (!email || !password) { showError('All fields are required.'); return; }
+
+  const res  = await fetch('/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password })
+  });
+  const data = await res.json();
+  if (!res.ok) { showError(data.error); return; }
+  window.location.href = '/splash';
+}
+
+function showError(msg) {
+  const el = document.getElementById('error-msg');
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+</script>
+</body>
+</html>

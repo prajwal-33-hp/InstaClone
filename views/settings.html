@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Settings and activity</title>
+<link rel="stylesheet" href="/css/style.css">
+<script src="/js/theme.js"></script>
+</head>
+<body>
+<main class="ig-settings">
+  <div class="ig-top">
+    <button class="back" onclick="history.length>1?history.back():location.href='/profile'">‹</button>
+    <h1 id="page-title">Settings and activity</h1>
+  </div>
+  <input class="ig-search" placeholder="🔍  Search" oninput="filter(this.value)" />
+
+  <div class="ig-section-title">Your account</div>
+  <div class="ig-row" data-k="accounts center personal details">
+    <div class="ig-icon">◎</div>
+    <div class="ig-text"><b>Accounts Center</b><span>Password, security, personal details, connected experiences, ad preferences</span></div>
+    <span class="ig-meta-brand">∞ Meta</span><span class="ig-arrow">›</span>
+  </div>
+
+  <div class="ig-divider"></div>
+  <div class="ig-section-title">How you use Instagram</div>
+  <div class="ig-row" data-k="saved"><div class="ig-icon">🔖</div><div class="ig-text"><b>Saved</b></div><span class="ig-arrow">›</span></div>
+  <div class="ig-row" data-k="archive"><div class="ig-icon">🕗</div><div class="ig-text"><b>Archive</b></div><span class="ig-arrow">›</span></div>
+  <div class="ig-row" data-k="your activity"><div class="ig-icon">📈</div><div class="ig-text"><b>Your activity</b></div><span class="ig-arrow">›</span></div>
+  <div class="ig-row" data-k="notifications"><div class="ig-icon">🔔</div><div class="ig-text"><b>Notifications</b></div><span class="ig-arrow">›</span></div>
+  <div class="ig-row" data-k="time management"><div class="ig-icon">⏱</div><div class="ig-text"><b>Time management</b></div><span class="ig-arrow">›</span></div>
+
+  <div class="ig-divider"></div>
+  <div class="ig-section-title">Who can see your content</div>
+  <div class="ig-row" data-k="account privacy"><div class="ig-icon">🔒</div><div class="ig-text"><b>Account privacy</b></div><span class="ig-meta">Private</span><span class="ig-arrow">›</span></div>
+  <div class="ig-row" data-k="close friends"><div class="ig-icon">⭐</div><div class="ig-text"><b>Close Friends</b></div><span class="ig-meta">0</span><span class="ig-arrow">›</span></div>
+  <div class="ig-row" data-k="crossposting"><div class="ig-icon">⊞</div><div class="ig-text"><b>Crossposting</b></div><span class="ig-arrow">›</span></div>
+  <div class="ig-row" data-k="blocked"><div class="ig-icon">🚫</div><div class="ig-text"><b>Blocked</b></div><span class="ig-meta">0</span><span class="ig-arrow">›</span></div>
+
+  <div class="ig-divider"></div>
+  <div class="ig-section-title">How others can interact with you</div>
+  <div class="ig-row" data-k="messages story replies"><div class="ig-icon">💬</div><div class="ig-text"><b>Messages and story replies</b></div><span class="ig-arrow">›</span></div>
+  <div class="ig-row" data-k="tags mentions"><div class="ig-icon">@</div><div class="ig-text"><b>Tags and mentions</b></div><span class="ig-arrow">›</span></div>
+  <div class="ig-row" data-k="comments"><div class="ig-icon">🗨</div><div class="ig-text"><b>Comments</b></div><span class="ig-arrow">›</span></div>
+  <div class="ig-row" data-k="sharing"><div class="ig-icon">↻</div><div class="ig-text"><b>Sharing</b></div><span class="ig-arrow">›</span></div>
+  <div class="ig-row" data-k="restricted"><div class="ig-icon">⊘</div><div class="ig-text"><b>Restricted</b></div><span class="ig-meta">0</span><span class="ig-arrow">›</span></div>
+  <div class="ig-row" data-k="hidden words"><div class="ig-icon">Aa</div><div class="ig-text"><b>Hidden Words</b></div><span class="ig-arrow">›</span></div>
+  <div class="ig-row" data-k="follow invite friends"><div class="ig-icon">＋👥</div><div class="ig-text"><b>Follow and invite friends</b></div><span class="ig-arrow">›</span></div>
+
+  <div class="ig-divider"></div>
+  <div class="ig-section-title">What you see</div>
+  <div class="ig-row" data-k="favorites"><div class="ig-icon">★</div><div class="ig-text"><b>Favorites</b></div><span class="ig-meta">10</span><span class="ig-arrow">›</span></div>
+  <div class="ig-row" data-k="muted"><div class="ig-icon">🔕</div><div class="ig-text"><b>Muted</b></div><span class="ig-meta">3</span><span class="ig-arrow">›</span></div>
+
+  <div class="ig-divider"></div>
+  <div class="ig-section-title">Your app and media</div>
+  <div class="ig-row" id="theme-row" onclick="toggleThemeRow()"><div class="ig-icon">🌓</div><div class="ig-text"><b>Theme</b><span id="theme-cur">Dark</span></div><div id="theme-toggle" class="ig-toggle"></div></div>
+  <div class="ig-row" data-k="accessibility"><div class="ig-icon">♿</div><div class="ig-text"><b>Accessibility</b></div><span class="ig-arrow">›</span></div>
+  <div class="ig-row" data-k="language translations"><div class="ig-icon">🌐</div><div class="ig-text"><b>Language and translations</b></div><span class="ig-arrow">›</span></div>
+  <div class="ig-row" data-k="data usage media quality"><div class="ig-icon">📶</div><div class="ig-text"><b>Data usage and media quality</b></div><span class="ig-arrow">›</span></div>
+  <div class="ig-row" data-k="app website permissions"><div class="ig-icon">🖥</div><div class="ig-text"><b>App website permissions</b></div><span class="ig-arrow">›</span></div>
+
+  <div class="ig-divider"></div>
+  <div class="ig-section-title">Family Center</div>
+  <div class="ig-row" data-k="supervision teen"><div class="ig-icon">🏠</div><div class="ig-text"><b>Supervision for Teen Accounts</b></div><span class="ig-arrow">›</span></div>
+
+  <div class="ig-divider"></div>
+  <div class="ig-section-title">Your insights and tools</div>
+  <div class="ig-row" data-k="account type tools"><div class="ig-icon">📊</div><div class="ig-text"><b>Account type and tools</b></div><span class="ig-arrow">›</span></div>
+  <div class="ig-row" data-k="meta verified"><div class="ig-icon">✔</div><div class="ig-text"><b>Meta Verified</b></div><span class="ig-meta">Not subscribed</span><span class="ig-arrow">›</span></div>
+
+  <div class="ig-divider"></div>
+  <div class="ig-section-title">Your orders and fundraisers</div>
+  <div class="ig-row" data-k="orders payments"><div class="ig-icon">📋</div><div class="ig-text"><b>Orders and payments</b></div><span class="ig-arrow">›</span></div>
+
+  <div class="ig-divider"></div>
+  <div class="ig-section-title">More info and support</div>
+  <div class="ig-row" data-k="help"><div class="ig-icon">🛟</div><div class="ig-text"><b>Help</b></div><span class="ig-arrow">›</span></div>
+  <div class="ig-row" data-k="meta ai support assistant"><div class="ig-icon">◯</div><div class="ig-text"><b>Meta AI support assistant</b></div><span class="ig-arrow">›</span></div>
+  <div class="ig-row" data-k="privacy center"><div class="ig-icon">🛡</div><div class="ig-text"><b>Privacy Center</b></div><span class="ig-arrow">›</span></div>
+  <div class="ig-row" data-k="account status"><div class="ig-icon">👤</div><div class="ig-text"><b>Account Status</b></div><span class="ig-arrow">›</span></div>
+  <div class="ig-row" data-k="about"><div class="ig-icon">ⓘ</div><div class="ig-text"><b>About</b></div><span class="ig-arrow">›</span></div>
+
+  <div class="ig-divider"></div>
+  <div class="ig-section-title">Also from Meta</div>
+  <div class="ig-row" data-k="meta ai"><div class="ig-icon">◯</div><div class="ig-text"><b>Meta AI</b><span>Get answers, advice and generate images</span></div><span style="color:#0095f6">●</span><span class="ig-arrow">›</span></div>
+  <div class="ig-row" data-k="threads"><div class="ig-icon">@</div><div class="ig-text"><b>Threads</b><span>Share ideas and join conversations</span></div><span class="ig-arrow">›</span></div>
+  <div class="ig-row" data-k="edits"><div class="ig-icon">✂</div><div class="ig-text"><b>Edits</b><span>Create videos with powerful editing tools</span></div><span style="color:#0095f6">●</span><span class="ig-arrow">›</span></div>
+  <div class="ig-row" data-k="more from meta"><div class="ig-icon">∞</div><div class="ig-text"><b>More from Meta</b></div><span class="ig-arrow">›</span></div>
+
+  <div class="ig-divider"></div>
+  <div class="ig-section-title">Login</div>
+  <div class="ig-row link-blue" onclick="location.href='/register'"><div class="ig-text"><b>Add account</b></div></div>
+  <div class="ig-row danger" onclick="logout()"><div class="ig-text"><b>Log out</b></div></div>
+</main>
+<nav class="bottom-nav"><a href="/home">⌂</a><a href="/reels">▻</a><a href="/chat">✈</a><a href="/search">⌕</a><a href="/profile" class="active">◉</a></nav>
+<script>
+function applyThemeUI(){const t=document.documentElement.dataset.theme;document.getElementById('theme-cur').textContent=t==='light'?'Light':'Dark';document.getElementById('theme-toggle').classList.toggle('on',t==='light')}
+function toggleThemeRow(){toggleTheme();applyThemeUI()}
+function filter(q){q=q.toLowerCase().trim();document.querySelectorAll('.ig-row').forEach(r=>{const k=(r.dataset.k||r.textContent).toLowerCase();r.style.display=!q||k.includes(q)?'flex':'none'});document.querySelectorAll('.ig-section-title,.ig-divider').forEach(s=>s.style.display=q?'none':'')}
+async function logout(){await fetch('/api/auth/logout',{method:'POST'});location.href='/login'}
+applyThemeUI();
+</script>
+</body>
+</html>

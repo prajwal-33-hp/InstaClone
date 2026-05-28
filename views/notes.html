@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mini_insta – Notes</title>
+<link rel="stylesheet" href="/css/style.css" />
+<style>
+  .notes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; padding: 16px; }
+  .note-card { border-radius: 12px; padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,.08); display: flex; flex-direction: column; gap: 10px; min-height: 160px; color: #222; }
+  .note-card h4 { margin: 0; font-size: 16px; }
+  .note-content { white-space: pre-wrap; flex: 1; font-size: 14px; line-height: 1.4; }
+  .note-meta { display:flex; justify-content:space-between; align-items:center; font-size:12px; opacity:.75; }
+  .note-actions { display:flex; gap:8px; align-items:center; }
+  .note-actions button { background: rgba(0,0,0,0.08); border:none; padding:6px 10px; border-radius: 20px; cursor:pointer; font-size:13px; }
+  .note-actions button.liked { background:#ff4d6d; color:#fff; }
+  .composer { padding: 16px; max-width: 720px; margin: 0 auto; }
+  .composer textarea, .composer input[type=text] { width:100%; padding:10px; margin:6px 0; border-radius:8px; border:1px solid #ccc; font-family:inherit; }
+  .color-row { display:flex; gap:8px; margin:8px 0; }
+  .color-swatch { width: 28px; height: 28px; border-radius: 50%; cursor:pointer; border:2px solid transparent; }
+  .color-swatch.active { border-color:#000; }
+  .comments { margin-top:8px; max-height:120px; overflow:auto; background:rgba(255,255,255,.45); border-radius:8px; padding:6px 8px; }
+  .comments .c { font-size:12px; padding:3px 0; border-bottom:1px dashed rgba(0,0,0,.1); }
+  .add-comment { display:flex; gap:6px; margin-top:6px; }
+  .add-comment input { flex:1; padding:6px; border-radius:6px; border:1px solid rgba(0,0,0,.15); font-size:12px; }
+  .add-comment button { padding:6px 10px; border-radius:6px; border:none; background:#222; color:#fff; cursor:pointer; font-size:12px; }
+  .visibility-row { display:flex; gap:14px; align-items:center; font-size:13px; }
+</style>
+<script src="/js/theme.js"></script></head>
+<body>
+<nav class="navbar">
+  <div class="nav-logo">📸 Mini_insta</div>
+  <div class="nav-links">
+    <a href="/home">🏠 Home</a>
+    <a href="/search">🔍 Search</a>
+    <a href="/reels">📹 Reels</a>
+    <a href="/stories">📖 Stories</a>
+    <a href="/notes">📝 Notes</a>
+    <a href="/profile">👤 Profile</a>
+    <a href="/chat">💬 Chat</a>
+    <a href="/settings">⚙️ Settings</a>
+    <button class="btn btn-sm btn-outline" onclick="logout()">Logout</button>
+  </div>
+</nav>
+
+<div class="composer card">
+  <h3>📝 New Note</h3>
+  <input type="text" id="noteTitle" placeholder="Title (optional)" maxlength="80" />
+  <textarea id="noteContent" rows="4" placeholder="Write something to share..."></textarea>
+  <div class="color-row" id="colorRow"></div>
+  <div class="visibility-row">
+    <label><input type="radio" name="vis" value="public" checked /> 🌍 Public</label>
+    <label><input type="radio" name="vis" value="private" /> 🔒 Only me</label>
+  </div>
+  <div style="display:flex; justify-content:flex-end; margin-top:8px;">
+    <button class="btn btn-primary btn-sm" onclick="createNote()">Share Note</button>
+  </div>
+  <div id="note-error" class="error-msg hidden"></div>
+</div>
+
+<h3 style="text-align:center;margin-top:8px;">Notes Feed</h3>
+<div id="notes" class="notes-grid"></div>
+
+<script>
+const COLORS = ["#fff8b0","#ffd6a5","#caffbf","#9bf6ff","#bdb2ff","#ffc6ff","#ffffff"];
+let selectedColor = COLORS[0];
+let me = null;
+
+function logout(){ fetch('/api/auth/logout',{method:'POST'}).then(()=>location.href='/login'); }
+
+function renderColors(){
+  const r = document.getElementById('colorRow');
+  r.innerHTML = COLORS.map(c=>`<div class="color-swatch ${c===selectedColor?'active':''}" style="background:${c}" onclick="pickColor('${c}',this)"></div>`).join('');
+}
+function pickColor(c, el){
+  selectedColor = c;
+  document.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('active'));
+  el.classList.add('active');
+}
+
+async function loadMe(){
+  const r = await fetch('/api/auth/me');
+  if(!r.ok){ location.href='/login'; return; }
+  me = await r.json();
+}
+
+async function createNote(){
+  const title = document.getElementById('noteTitle').value.trim();
+  const content = document.getElementById('noteContent').value.trim();
+  const isPublic = document.querySelector('input[name=vis]:checked').value === 'public';
+  const err = document.getElementById('note-error');
+  err.classList.add('hidden');
+  if(!content){ err.textContent='Note content is required.'; err.classList.remove('hidden'); return; }
+  const res = await fetch('/api/notes', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ title, content, color: selectedColor, isPublic })
+  });
+  if(!res.ok){ const d = await res.json().catch(()=>({})); err.textContent = d.error||'Failed.'; err.classList.remove('hidden'); return; }
+  document.getElementById('noteTitle').value=''; document.getElementById('noteContent').value='';
+  await loadFeed();
+}
+
+function escapeHtml(t){ return (t||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function renderNote(n){
+  const comments = (n.comments||[]).map(c=>`<div class="c"><b>${escapeHtml(c.userId?.username||'user')}:</b> ${escapeHtml(c.text)}</div>`).join('');
+  return `
+  <div class="note-card" style="background:${n.color||'#fff8b0'}" data-id="${n._id}">
+    <div class="note-meta">
+      <span>👤 ${escapeHtml(n.userId?.username||'user')} ${n.isPublic?'· 🌍':''} ${n.isMine?'· (you)':''}</span>
+      ${n.isMine?`<button onclick="deleteNote('${n._id}')" style="background:none;border:none;cursor:pointer;">🗑</button>`:''}
+    </div>
+    ${n.title?`<h4>${escapeHtml(n.title)}</h4>`:''}
+    <div class="note-content">${escapeHtml(n.content)}</div>
+    <div class="note-actions">
+      <button class="${n.likedByMe?'liked':''}" onclick="reactNote('${n._id}', this)">❤️ <span class="lc">${n.likesCount||0}</span></button>
+      <span style="font-size:12px;opacity:.7;">${new Date(n.createdAt).toLocaleString()}</span>
+    </div>
+    <div class="comments">${comments||'<div class="c" style="opacity:.6;">No reactions yet — be the first to comment.</div>'}</div>
+    <div class="add-comment">
+      <input type="text" placeholder="Reply..." onkeydown="if(event.key==='Enter')commentNote('${n._id}', this)" />
+      <button onclick="commentNote('${n._id}', this.previousElementSibling)">Send</button>
+    </div>
+  </div>`;
+}
+
+async function loadFeed(){
+  const r = await fetch('/api/notes/feed');
+  if(!r.ok) return;
+  const notes = await r.json();
+  document.getElementById('notes').innerHTML = notes.length
+    ? notes.map(renderNote).join('')
+    : '<p style="text-align:center;grid-column:1/-1;opacity:.6;">No notes yet. Share the first one!</p>';
+}
+
+async function reactNote(id, btn){
+  const r = await fetch(`/api/notes/${id}/react`, { method:'POST' });
+  if(!r.ok) return;
+  const d = await r.json();
+  btn.classList.toggle('liked', d.liked);
+  btn.querySelector('.lc').textContent = d.likesCount;
+}
+
+async function commentNote(id, input){
+  const text = input.value.trim();
+  if(!text) return;
+  const r = await fetch(`/api/notes/${id}/comment`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ text })
+  });
+  if(!r.ok) return;
+  input.value='';
+  loadFeed();
+}
+
+async function deleteNote(id){
+  if(!confirm('Delete this note?')) return;
+  await fetch(`/api/notes/${id}`, { method:'DELETE' });
+  loadFeed();
+}
+
+renderColors();
+loadMe().then(loadFeed);
+</script>
+</body>
+</html>
