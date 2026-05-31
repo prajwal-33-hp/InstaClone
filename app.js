@@ -14,6 +14,20 @@ mongoose
   .connect(MONGO_URI)
   .then(() => console.log('✅ MongoDB connected to "gminsta" database'))
   .catch((err) => console.error("❌ MongoDB connection error:", err));
+mongoose
+  .connect(MONGO_URI)
+  .then(async () => {
+    console.log('✅ MongoDB connected to "gminsta" database');
+
+    await mongoose.connection.createCollection("users");
+    await mongoose.connection.createCollection("posts");
+    await mongoose.connection.createCollection("comments");
+    await mongoose.connection.createCollection("stories");
+    await mongoose.connection.createCollection("notes");
+
+    console.log("✅ Collections created");
+  })
+  .catch((err) => console.error("❌ MongoDB connection error:", err));
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 app.use(express.json());
