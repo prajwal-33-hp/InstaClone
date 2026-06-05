@@ -1,22 +1,12 @@
 const express = require("express");
 const router = express.Router();
 const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
 const Post = require("../models/Post");
+const { uploadToS3, deleteFromS3 } = require("../config/s3");
 
-// ── Multer Storage (images + videos) ──────────────────────────────────────────
-const uploadDir = path.join(__dirname, "../public/images/uploads");
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) =>
-    cb(null, Date.now() + "_" + Math.round(Math.random() * 1e6) + path.extname(file.originalname)),
-});
-
+// ── Multer Memory Storage (files go to S3, not disk) ─────────────────────────
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 50 * 1024 * 1024 }, // 50MB to allow short videos
   fileFilter: (req, file, cb) => {
     const okImage = /^image\/(jpeg|png|gif|webp)$/.test(file.mimetype);
@@ -40,13 +30,17 @@ router.post("/", requireAuth, upload.single("media"), async (req, res) => {
       return res.status(400).json({ error: "Caption or media required." });
 
     const isVideo = req.file && req.file.mimetype.startsWith("video/");
-    const filePath = req.file ? "/images/uploads/" + req.file.filename : null;
+    let fileUrl = null;
+    if (req.file) {
+      const { url } = await uploadToS3(req.file);
+      fileUrl = url;
+    }
 
     const post = new Post({
       userId: req.session.userId,
       caption: caption || "",
-      image: !isVideo ? filePath : null,
-      video: isVideo ? filePath : null,
+      image: !isVideo ? fileUrl : null,
+      video: isVideo ? fileUrl : null,
       isVideo: !!isVideo,
       location: location || "",
     });
@@ -54,7 +48,6 @@ router.post("/", requireAuth, upload.single("media"), async (req, res) => {
     await post.populate("userId", "username profilePic");
     res.json(post);
   } catch (err) {
-    if (req.file) { try { fs.unlinkSync(req.file.path); } catch (_) {} }
     res.status(500).json({ error: err.message });
   }
 });
@@ -65,10 +58,15 @@ router.post("/legacy", requireAuth, upload.single("image"), async (req, res) => 
     const { caption } = req.body;
     if (!caption && !req.file)
       return res.status(400).json({ error: "Caption or image required." });
+    let imageUrl = null;
+    if (req.file) {
+      const { url } = await uploadToS3(req.file);
+      imageUrl = url;
+    }
     const post = new Post({
       userId: req.session.userId,
       caption: caption || "",
-      image: req.file ? "/images/uploads/" + req.file.filename : null,
+      image: imageUrl,
     });
     await post.save();
     await post.populate("userId", "username profilePic");
@@ -155,10 +153,13 @@ router.delete("/:id", requireAuth, async (req, res) => {
     if (post.userId.toString() !== req.session.userId.toString())
       return res.status(403).json({ error: "Unauthorized." });
 
-    for (const f of [post.image, post.video]) {
-      if (!f) continue;
-      const p = path.join(__dirname, "../public", f);
-      if (fs.existsSync(p)) { try { fs.unlinkSync(p); } catch (_) {} }
+    // Delete media from S3 (extract key from the stored URL)
+    for (const url of [post.image, post.video]) {
+      if (!url) continue;
+      try {
+        const key = url.split(`/${process.env.BUCKET}/`)[1];
+        if (key) await deleteFromS3(key);
+      } catch (_) {}
     }
     await post.deleteOne();
     res.json({ message: "Post deleted." });
