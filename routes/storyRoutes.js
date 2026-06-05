@@ -1,25 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 const Story = require('../models/Story');
 const User = require('../models/User');
+const { uploadToS3, deleteFromS3 } = require('../config/s3');
 
-// ─── Multer Configuration (images + videos) ───────────────────────────────────
-const uploadDir = path.join(__dirname, '../public/images/uploads');
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => {
-    const uniqueName = `story_${req.session.userId}_${Date.now()}${path.extname(file.originalname)}`;
-    cb(null, uniqueName);
-  }
-});
-
+// ─── Multer Memory Storage (files go to S3, not disk) ────────────────────────
 const upload = multer({
-  storage: storage,
+  storage: multer.memoryStorage(),
   fileFilter: (req, file, cb) => {
     const okImage = /^image\/(jpeg|png|gif|webp)$/.test(file.mimetype);
     const okVideo = /^video\/(mp4|quicktime|webm|ogg|x-matroska)$/.test(file.mimetype);
@@ -47,13 +35,14 @@ router.post('/', requireAuth, acceptMedia, async (req, res) => {
     if (!file) return res.status(400).json({ error: 'Image or video is required for story.' });
 
     const { caption } = req.body;
-    const filePath = `/images/uploads/${file.filename}`;
     const isVideo = file.mimetype.startsWith('video/');
+
+    const { url: fileUrl } = await uploadToS3(file);
 
     const story = new Story({
       userId: req.session.userId,
-      image: isVideo ? null : filePath,
-      video: isVideo ? filePath : null,
+      image: isVideo ? null : fileUrl,
+      video: isVideo ? fileUrl : null,
       isVideo,
       caption: caption || ''
     });
@@ -63,10 +52,6 @@ router.post('/', requireAuth, acceptMedia, async (req, res) => {
 
     res.json({ message: 'Story created successfully!', story });
   } catch (err) {
-    try {
-      const f = (req.files?.media?.[0]) || (req.files?.storyImage?.[0]);
-      if (f) fs.unlinkSync(f.path);
-    } catch (_) {}
     res.status(500).json({ error: err.message });
   }
 });
@@ -201,10 +186,13 @@ router.delete('/:storyId', requireAuth, async (req, res) => {
     if (story.userId.toString() !== req.session.userId.toString())
       return res.status(403).json({ error: 'Unauthorized.' });
 
-    const mediaPath = story.video || story.image;
-    if (mediaPath) {
-      const filePath = path.join(__dirname, '../public', mediaPath);
-      if (fs.existsSync(filePath)) { try { fs.unlinkSync(filePath); } catch (_) {} }
+    // Delete media from S3 (extract key from the stored URL)
+    const mediaUrl = story.video || story.image;
+    if (mediaUrl) {
+      try {
+        const key = mediaUrl.split(`/${process.env.BUCKET}/`)[1];
+        if (key) await deleteFromS3(key);
+      } catch (_) {}
     }
 
     await story.deleteOne();

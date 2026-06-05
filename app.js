@@ -3,7 +3,6 @@ const mongoose = require("mongoose");
 const session = require("express-session");
 const MongoStore = require("connect-mongo");
 const path = require("path");
-const fs = require("fs");
 
 const app = express();
 
@@ -33,10 +32,6 @@ mongoose
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
-
-// Serve uploaded images
-const uploadDir = path.join(__dirname, "public/images/uploads");
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
 app.use(
   session({
