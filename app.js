@@ -8,7 +8,7 @@ const fs = require("fs");
 const app = express();
 
 // ─── MongoDB Connection ───────────────────────────────────────────────────────
-const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/gminsta";
+const MONGO_URI = process.env.MONGO_URI || "";
 
 mongoose
   .connect(MONGO_URI)
