@@ -8,7 +8,7 @@ const fs = require("fs");
 const app = express();
 
 // ─── MongoDB Connection ───────────────────────────────────────────────────────
-const MONGO_URI = process.env.MONGO_URI || "";
+const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://prajwalprajwal5674_db_user::9BbH5Yh8bEX66Rex@cluster0.fm3wma8.mongodb.net/?appName=Cluster0";
 
 mongoose
   .connect(MONGO_URI)
